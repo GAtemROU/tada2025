@@ -1,0 +1,93 @@
+\documentclass{article}
+\usepackage{graphicx} % Required for inserting images
+\usepackage[natbibapa]{apacite}
+\usepackage[colorlinks=true,linkcolor=black,citecolor=black,urlcolor=black]{hyperref}
+\usepackage{amsmath}
+
+\newcommand\indep{\protect\mathpalette{\protect\independenT}{\perp}}
+\def\independenT#1#2{\mathrel{\rlap{$#1#2$}\mkern2mu{#1#2}}}
+
+\title{\vspace{-2cm}Assignment 3\\
+    Independent}
+
+\author{Tymur Mykhalievskyi\\ 7031100\\ tymy00001@stud.uni-saarland.de}
+\date{\today}
+
+
+\begin{document}
+
+\maketitle
+
+\section{Introduction}
+This review analyzes two methods for causal inference introduced in: \cite{peters2011,janzing2010}. Both are proposing methods for causal inference problem using only observational data. The causal inference is impossible without any further assumptions when only considering the joint distribution. Hence, one could rely on interventions in order to determine what is the cause and what is the effect. However, if one makes additional assumptions about the underlying structure of the data, one can infer causality only from the joint distribution. Both papers look into how causal inference can be done after observing only the joint distribution. 
+
+A more classical approach in this field depends on Reichenbach's principle of common cause. The method relies on conditional independence tests in order to identify causality between $X,Y \text{ and } Z$ up to Markov equivalence classes. In contrast, \cite{peters2011,janzing2010} look into methods about causal inference when only two variables are available. One can no longer exploit the conditional independence tests, hence, the classical approach fails. Both papers try to exploit some asymmetries in the data generation process in order to determine the causal direction.
+
+\section{Additive Noise Models}
+\cite{peters2011} look into additive noise models (ANM). From the joint distribution of $P(X,Y)$ this method assumes that $Y$ (effect) is generated via \textbf{deterministic function} $f$ from $X$ (cause) with some \textbf{additive} noise $N$ which is \textbf{independent} of $X$. Hence, one can fit the following models:
+
+$$Y=f(X) + N, N\indep X$$
+$$X=g(Y) + N', N'\indep Y$$
+
+Whenever only the first model fits the data, but not the second one (reverse direction), one can conclude that $X$ is the cause of $Y$. It is important to note that the noise is not assumed to be of any specific distribution, but only that it is independent of $X$. One would simply consider the residuals of the regression of $Y$ on $X$ and check whether they are independent of $X$. 
+
+This method works because the noise is assumed to be independent of the cause. Hence, the noise does not influence the cause and the effect can be modeled as a deterministic function of the cause. In contrast, if one would try to fit the reverse direction, the noise would influence the cause, as it takes part during the generating process, and the model would not fit the data well.
+
+As no assumption is made about the $f$ directly, a variety of functions must be considered in order to fit the model. However, \cite{peters2011} look in the discrete case of this problem. This allows them to limit the search space and instead of focusing on families of functions. Further, \cite{peters2011} propose an algorithm initializing $f$ to map every $x$ to the $y$ that occurred most often under all $y$. The algorithm uses monotonically decreasing function in the minimization step guaranteeing convergence. Although, the algorithm is not guaranteed to converge to the global minimum, but does well in practice.
+
+The ANM model performs rather well in practice according to empirical evaluations by \cite{peters2011}. On the other hand, the model sometimes does not fit the data in any direction or in both. Which means that the method could not infer causality. Importantly, in this case the algorithm answers with "I don't know", instead of falsely identifying the direction.
+
+\section{Algorithmic Markov Condition}
+
+The approach proposed by \cite{janzing2010} is grounded in the theory of algorithmic information, particularly Kolmogorov complexity, which quantifies the minimal description length of an object. The Kolmogorov complexity $K(s)$ of a string $s$ is defined as the length of the shortest program that outputs $s$ on a universal Turing machine.
+
+In the context of causal inference, the key assumption is that in the true causal direction $X \to Y$, the joint distribution $P(X, Y)$ can be decomposed into its marginal and conditional components in an algorithmically independent way. Formally, the Algorithmic Markov Condition (AMC) assumes:
+
+$$ K(P(X, Y)) \approx K(P(X)) + K(P(Y|X)), $$
+
+where $K$ denotes Kolmogorov complexity. This reflects the idea that the description of the marginal distribution $P(X)$ and the conditional distribution $P(Y|X)$ do not share algorithmic information — that is, they are chosen independently.
+
+The practical implication is that the correct causal direction corresponds to the factorization of the joint distribution that leads to the lowest total description length. More concretely, one infers $X \to Y$ if
+
+$$ K(P(X)) + K(P(Y|X)) < K(P(Y)) + K(P(X|Y)). $$
+
+The left-hand side represents the total complexity assuming $X$ causes $Y$, while the right-hand side corresponds to the reverse. The causal direction is thus inferred by selecting the decomposition of $P(X, Y)$ with the simpler, more modular description.
+
+It is important to note that AMC does not assume a specific functional form or probabilistic model. Rather, it relies on the asymmetry of algorithmic dependencies between marginals and conditionals. Moreover, unlike approaches based on statistical independence (e.g., ANMs), AMC is fundamentally defined over strings and is applicable even in the absence of i.i.d.\ sampling or parametric noise models.
+
+Although this framework offers a powerful and general view of causality, its practical application is limited by the uncomputability of Kolmogorov complexity. Consequently, approximate methods must be used to instantiate the AMC, which are discussed in the following section.
+
+\subsection{Instantiating the AMC}
+A clear limitation of AMC is that it requires to compute the Kolmogorov complexity which is not computable due to undecidability of halting problem. Hence, instantiating the AMC is difficult in practice. One can consider using approximations of the Kolmogorov complexity. Hence, this section will look into what approximations of the Kolmogorov complexity could be used in order to instantiate the AMC.
+
+First of all, only lossless compression algorithms should be considered, because they do not lose any information about the data. This is especially important for AMC. As compressing the data in one direction is expected to be more difficult than in the other direction, lost data would most likely be the difficult to compress part. Hence, one would not be able to conclude anything about the causal direction.
+
+Second of all, even though AMC does not assume any underlying distributions, disregarding the distribution of the data when approximating Kolmogorov complexity might not be a good idea. Compression algorithms which do not take into account the distribution of the data such as ZIP, might be ineffective to the problem when learning parameters to a certain distribution and adding residuals on top would lead to a simple solution, rather than trying to compress the data in a more direct way. That being said one should not entirely abandon such compressors as they might work particularly well in other cases.
+
+Finally, perhaps a more general solution to this problem is to consider minimum description length (MDL) as an approximation to the Kolmogorov complexity. More formally, given a set of models $\mathcal{M}$, the best model $M\in\mathcal{M}$ is that minimizes:
+$$K(P(Y|X))\approx L(M) + L(D|M)$$
+where $L(M)$ is the length, in bits, needed to describe the model, while $L(D|M)$ is the length, in bits, of the description of the data when encoded using $M$. Such structure aligns with core ideas of AMC as MDL looks for the simplest and most efficient way of compressing the data at the same, similarly to how AMC assumes that processes tend to take a simpler route.
+
+That being said, MDL still requires one to specify the set of models $\mathcal{M}$, which is difficult to decide in practice. One could vary the complexity of models by introducing distribution based models as well as simpler models as linear regression and even compression based algorithms. This approach would theoretically allow for a diverse instantiation of AMC, however, it is still difficult to estimate how well one would perform in practice.
+
+
+\section{Relation between the two approaches}
+Both approaches are looking into the same problem. In this section we will look into the relation between the two approaches. Both exploit some sort of asymmetry in the data generation process. \cite{peters2011} exploit the fact that the noise is independent of the cause, while \cite{janzing2010} exploit the fact that the cause and the mechanism generating the data are independent.
+
+ANM can be seen a special case of AMC. While ANM makes an assumption about the noise being independent of the cause and its additivity, AMC makes an assumption about the cause and the mechanism generating the data being independent. The independence of the noise in ANM can be seen as a special case of the independence of the cause and the mechanism generating the data in AMC. Let's assume the true direction is $X\to Y$ and $Y$ is generated according to ANM assumptions. Then, discovering causal direction in ANM implies that $Y=f(X)+N$ where $N\indep X$ fits the data better than the reverse direction. Looking at the same problem from the perspective of AMC, it looks for the simplest explanation of the data in terms of Kolmogorov complexity. According to the AMC assumptions, the cause and the mechanism generating the data are independent. The corresponding terms $K(P(X)) + K(P(Y|X))$ and $K(P(Y)) + K(P(X|Y))$ can be interpreted as the complexity of the joint distribution when $X$ is the cause and $Y$ is the effect and vice versa. The second term is more complex than the first one, because it tries to model $X$ from $Y$ resulting in higher Kolmogorov complexity. 
+
+It is important to note that such implication is not symmetric. The AMC does not imply the ANM, because the AMC does neither assumes the independence of the noise nor its additivity. Hence, the AMC can be seen as a more general framework. 
+
+On one hand the AMC is more general, on the other hand, the ANM is more practical. The ANM can be instantiated in practice, while the AMC is difficult to instantiate due to the uncomputability of Kolmogorov complexity, as was discussed in the previous section. The ANM can be instantiated by fitting a regression model and checking whether the residuals are independent of the cause. 
+
+\section{Conclusion}
+
+This review analyzed two papers which propose into causal inference problem when only the joint distribution of random variables is available. Both papers exploit some asymmetries in the data generation process in order to determine the causal direction. We looked into additive noise models (ANM) and algorithmic Markov condition (AMC). In particular, how the approaches are related to each other and what are the limitations. To this end the ANM can be seen as a more practical approach, while the AMC is more general but difficult to use. 
+
+\bibliographystyle{apacite}	
+\bibliography{references}
+
+
+\end{document}
+
+
