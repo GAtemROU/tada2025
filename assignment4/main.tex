@@ -1,0 +1,115 @@
+\documentclass{article}
+\usepackage{graphicx} % Required for inserting images
+\usepackage[natbibapa]{apacite}
+\usepackage[colorlinks=true,linkcolor=black,citecolor=black,urlcolor=black]{hyperref}
+\usepackage{amsmath}
+
+\newcommand\indep{\protect\mathpalette{\protect\independenT}{\perp}}
+\def\independenT#1#2{\mathrel{\rlap{$#1#2$}\mkern2mu{#1#2}}}
+
+\title{\vspace{-2cm}Assignment 4\\
+    Same-same, but different
+
+    }
+
+\author{Tymur Mykhalievskyi\\ 7031100\\ tymy00001@stud.uni-saarland.de}
+\date{\today}
+
+
+\begin{document}
+
+\maketitle
+
+\section{Introduction}
+Comparing two graphs is a very challenging task, in fact a simpler problem of graph isomorphism does not have a polynomial time solution. One can define plenty numerical metrics in order to tell how two graphs are similar or different. However, a slightly alternative definition of the problem is way more interesting. That is determine \emph{how} two graphs are (dis)similar. Such formulation is way more comprehensible for any real-life problem giving insight in the structure of the compared graphs. This report looks into multiple papers in the field tackling on this problem with different approaches.
+
+\section{Momo}
+The first paper \citep{coupette2021momo} introduces a method to compare two graphs by firstly summarizing the graphs and then finding a common model. This allows one to see the similarities and dissimilarities between the graphs.
+
+The first part of the method is graph summarization, which is done by Beppo. Beppo summarizes the graph by compressing it according to MDL principle. The model is built by combining structures. Each structure either exactly matches one of the following: clique, star, biclique, starclique, or is a slight modification of one of the previous structures. The model is built by minimizing the description length of the graph.
+
+After two graphs are summarized, the second part of the method is to compare the two graphs by finding a common model, done by Gigi. The common model is found by again minimizing the description length of the common model. However, in this case, the MDL principle contains the common model itself, the transformations needed to derive the initial graphs from the common model and the alignment of the graphs given the common model and transformations.
+
+The common model is build from the individual models derived from graphs. Hence, the common model is build upon a partially abstracted view of original graphs (partially abstracted because Gigi still can compare the underlying structure of the components found by Beppo). While this seems like a good idea on the first glance, and works in practice according to the paper, one can think about a scenario where changing a small number of vertices and/or edges in the original graph could lead to a completely different model found by Beppo, therefore, making the problem of finding a common model completely different. Hence, because the first step does not take into account the fact that there are two graphs but only looks at them separately, the common model discovery could suffer greatly from small changes in the original graphs. This limitation is partially mentioned in the conclusion.
+
+This method is going to be a baseline for the further methods. The method is not too complicated, keeping interpretability in mind, due to predefined subgraphs. Yet it might not be flexible enough to capture different types of structures in graphs. In addition, the shortcoming mentioned in the previous section must be taken into account when applying the method.
+% compression improvement comparing to the previous work. Even though the approaches VoG and new are very similar, the improvement is not surprising. Both approaches resort to heuristics to some extent, hence involving non-optimality at its core. It is not surprising that in 7 years, one can come up with a better heuristic. 
+
+\section{Gragra}
+The method presented by \cite{coupette2022gragra} is yet another slightly different approach to the problem of graph similarity. The method is based on iteratively expending a pattern until it does not improve the BIC anymore. 
+
+As was mentioned before, the method iteratively improves until convergence. The algorithm starts by mining a pattern that compresses the graphs from a given group maximizing the heuristic based on the empirical frequency of the pattern and the expected one. In the next step the algorithm tries the mined pattern on other groups, therefore, potentially assigning it to further groups, finally deciding whether it is to be kept according to a significant test. 
+
+Gragra is a different method for discovering similarities and dissimilarities in graphs. Similarly to the previous idea \citep{coupette2021momo}, it identifies subgraphs that are similar to each other. However, it takes into account multiple graphs at the same time comparing to Gigi, which does initial subgraph discovery individually for each graph. Furthermore, the subgraphs are learnt dynamically instead of being fixed. This has its pros and cons, on one hand, this would give more flexibility allowing for a better model fit, on the other hand, the interpretability might suffer from such change depending on the fields of implication. For some problems the found structures might represent a well-known and interpretable building blocks such as molecules, while for others the structure might be too obscure to interpret. 
+
+Furthermore, judging from the empirical results, the method sometimes finds a few patterns(10-30) with some of them shared between the graphs, while other times it finds a lot of patterns($>$300) with none shared (according to Figure 3 of the original paper). In my opinion, the second case clearly indicates shortcoming of the method. By finding only a lot of dissimilarities it just summarizes the graphs in a non-interpretable way due to great amount of patterns. On the other hand, finding few patterns with some of them shared is a good thing, such results are rather interpretable and the significance test allows to filter out the noise.
+
+\section{SSBM}
+The paper by \cite{kumpulainen2025sbm} introduces a method for graph similarity based on stochastic block models (SBM). The blocks are firstly mined for each graph separately, then the blocks are merged together if they minimize the MDL principle, that is if the merging would lead to a better compression of the graphs. 
+
+The SBM method partitions the graph into blocks as well as includes the connections between the blocks. The two are estimated via maximum likelihood estimation. The fresh part presented by \cite{kumpulainen2025sbm} is that the blocks are then merged together if the merging would lead to a better compression of the graphs. The merging is done by checking whether the merging would lead to a better compression of the graphs, that is whether the MDL principle would be satisfied.
+
+On the first glance SSBM is not as interpretable comparing to the first or second methods \citep{coupette2021momo,coupette2022gragra} due to absence of structure in the blocks. Which would completely disregard the core idea of \emph{how} the graphs are similar or different. On the other hand, depending on the problem, the structure might not be as important considering that the amount of blocks is comprehensible. Knowing that the underlying structure of a shared block is very similar is enough. Such as the example in the paper with the brain connectivity, the blocks can be mapped to regions of the brain, hence, the connectivity within a particular region is not of the essence. Furthermore, SSBM includes information about connectivity between the blocks in the form of connectivity matrix. As SSBM is parametrized with the number of blocks the graph is to be partitioned in the first step, the problem of having too many of them is also not present. 
+
+
+\section{Which is the best?}
+\label{sec:comp}
+This section compares the three methods presented in the previous sections. The question is which method is the best? Clearly, there is no universal answer to this question, as the methods have different strengths and weaknesses. However, one can compare them from different perspectives, such as expressivity, reliability, efficiency and versatility.
+
+\subsection{Expressivity}
+Momo \citep{coupette2021momo} is clearly the least expressive as it only considers predefined structures, hence, the expressivity fully depends on the predefined structures. Unless there is prior knowledge available to the problem it is difficult to guarantee expressivity of Momo. The higher level expressivity is better as it provides the common model and how the graphs are related.
+
+Gragra is potentially the most expressive as it discovers the patterns on the go, not limited to non-overlapping patterns and does not have a limit of them. However, the expressivity on the higher level is not as good as the patterns are just presented as is without any linkage between them.
+
+SSBM are moderately expressive as the graph is partitioned in a predefined amount of blocks resulting in the limited expressivity not allowing to capture more complex structures. On the other hand, the method has the highest expressivity on the meta level due to inclusion of the between block connectivity matrix. 
+    
+\subsection{Reliability}
+Momo is moderately reliable, having some of the most popular graph structures, it potentially works for a lot of graphs, however, the structures of the subgraphs are rather static, therefore, there is always a possibility for not fitting to the particular problem. Furthermore, one has to keep in mind the shortcoming mentioned earlier, few changes in the original graph might lead to a different abstraction, therefore leading to different results.
+
+Gragra is controversial in this topic. While being the only one incorporating statistical significance test, it is supposed to be the most reliable. However, reliability also includes returning somewhat meaningful results in as many cases as possible. Judging from the empirical results, the method tends to return uninterpretable amount of patterns in almost half of the runs, leading to decrease in reliability.
+
+
+SSBM is the most reliable in general, given the MLE approach in the first step, the method is not affected by small changes in the data. Furthermore, the limited amount of blocks insures meaningfulness of the output.
+
+\subsection{Efficiency}
+Momo's runtime is exponential in the worst case, however, the empirical evaluations reveal that the algorithm is near-linear in most cases. Though, still the method is not really suitable for extremely large data, such as $\approx 10^9$ edges.
+
+Gragra is even worse, due to multi-graph mining as there is no abstraction on the first step as done in Momo. Furthermore, the need for statistical significance testing adds additional computational overhead.
+
+SSBM is the most efficient among three. The runtime scales linearly in the number of edges, making the algorithm very efficient. Furthermore, authors propose potentially less optimal variations with higher efficiency.
+
+\subsection{Versatility}
+Momo is the least versatile, only defined for undirected, unweighted, without loops or parallel edges, only two input graphs are given.
+
+
+Gragra is the most versatile due to high variety in the graph inputs: ``Our graphs can be undirected or directed, loopy or non-loopy, and unweighted, edge-labeled, or integer weighted''. Furthermore, handles any number of graphs until runtime becomes a problem.
+
+SSBM is moderately versatile, defined for directed graphs and handles multiple graphs at the same time. Does not handle weighted edges.
+
+\subsection{Best?}
+In my opinion there is no best method for any problem in general, clearly if one has a graph with very high amount of edges, Momo or Gragra is not the choice. On the other hand, prior knowledge might help define general structures giving Momo an advantage comparing to others. Furthermore, statistical tests might be of the essence when mining patterns, favouring Gragra.
+
+\section{RoSi}
+Another paper in the field by \cite{kalofolias2019rosi} introduces a method for discovering densely connected subgraphs in a given graph or a set of graphs. The core idea comes from pattern mining rather than directly approaching the problem of graph similarity. 
+
+While more classical pattern mining is parametrized by the minimal support, graphs require a more sophisticated approach. One has to take into account the subgraphs that correspond to mined patterns, instead of plainly considering how many times the pattern shows up in the data. The authors take the following approach in defining interestingness of a subgraph and of a pattern as a result. The first filtering criterion is $k$-core component, that is a mined subgraph must contain at least one maximal connected subgraph with a minimum degree of $k$ ($k$-core) in order to be considered interesting. Furthermore, the $k$-core component might not be particularly interesting by itself, hence, the authors consider the expansion of the found $k$-core such that the resulting subgraph is still connected. The new nodes are added to the $k$-core component if they improve the following score:
+\[ f_k(U;\gamma) = f_c(U)^{(1-\gamma)} \cdot f_d(U)^{\gamma} \]
+where $f_c(U) = |U|/|V|$ is a coverage term or  the portion of graph covered by the nodes. While $f_d(U)$ is the density of the subgraph, and $\gamma$ is a parameter that controls the trade-off between the two. Low $\gamma$ would result in a subgraph that covers a large portion of the graph, while high $\gamma$ would result in a subgraph that is dense. Furthermore, one has to define the description language for the patterns. The patterns are build as conjunctions of simpler patterns (\texttt{age$\geq$18}). Hence, the description language defines the building blocks of the patterns. Depending on the data, they can either be discovered automatically or defined manually.
+
+\subsection{Graph similarity}
+The method cannot be directly used for graph similarity, however, it has all the necessary components to be used for graph similarity. Hence, in this section we will discuss how the method can be used for graph similarity. The main building blocks of the graph similarity method are (1) a way to mine patterns for a particular graph, (2) a way to compare the patterns or link them using a common model. Current method can directly give us mined patterns particular graphs. Hence (1) is satisfied.
+
+The second part is more complicated, one can think of a common model as a set of patterns that are shared between the graphs. However, very similar patterns that are supposed to overlap will be treated as different patterns. Hence, taking inspiration from \cite{coupette2022gragra}, one can think of mining a pattern for one graph and then trying to assign it to other graph(s). The assignment can be done by checking whether the pattern would lead to a satisfiable subgraph in the other graph(s). If it does, then the pattern can be treated as shared, otherwise it is kept as a unique pattern for the first graph. Similar procedure can be done for the second graph. The common model is then a set of patterns that are shared between the graphs. Note that in this setting in contrast to \cite{coupette2022gragra} the patterns are not defined by the subgraph, but rather by the conjunction of simpler patterns. On one hand the mined patterns are more interpretable due to a simple description of them, on the other hand, the subgraph structure is not explicitly taken into account, hence, the subgraphs would require further analysis to be interpretable. Depending on the problem stated, it could be a good or a bad thing. For example, in the case of molecules, the subgraph structure is important, hence, the patterns would not be interpretable enough. However, in the case of social networks, the patterns could be interpretable enough to be useful, as the particular structure of the subgraph is not as important as the fact that the subgraph exists.
+
+As a conclusion, one has to keep in mind that the method at its core is not designed for graph similarity but for discovering densely connected subgraphs. And it requires some parametrization in general and even further consideration when used for graph similarity. However, the method has all the necessary components to be used for graph similarity.
+
+\section{Conclusion}
+In this report we considered multiple papers from the field of graph similarity as well as a bonus paper linking pattern mining and subgroup discovery with the graph summarization. As was concluded in the \autoref{sec:comp}, there is no universal method and the results of a particular method are highly dependent on the problem setting. However, we looked at the comparison problem from different perspectives: expressivity, reliability, efficiency and versatility. Therefore, giving recommendations based on the demand of the particular problem setting. 
+
+\bibliographystyle{apacite}	
+\bibliography{references}
+
+
+\end{document}
+
+
